@@ -1,0 +1,517 @@
+import tkinter as tk
+from tkinter import ttk, font, filedialog, messagebox, scrolledtext
+import pyperclip
+from PIL import Image, ImageTk
+import os
+import webbrowser
+import threading
+import time
+import json
+from pathlib import Path
+
+# Cores modernas com tema escuro
+DARK_BG = "#1e1e2e"
+DARKER_BG = "#181825"
+ACCENT_COLOR = "#cba6f7"  # Roxo claro para destaque
+TEXT_COLOR = "#cdd6f4"
+SECONDARY_TEXT = "#a6adc8"
+SUCCESS_COLOR = "#a6e3a1"
+BUTTON_HOVER = "#313244"
+WARNING_COLOR = "#f9e2af"
+ERROR_COLOR = "#f38ba8"
+
+# Constantes para os caminhos
+USER_HOME = str(Path.home())
+APP_DIR = os.path.join(USER_HOME, "script_hub")
+WORKSPACE_DIR = os.path.join(APP_DIR, "WorkSpace")
+PICTURES_DIR = os.path.join(APP_DIR, "WorkPictures")
+DATA_FILE = os.path.join(APP_DIR, "games_data.json")
+
+class OriginHub:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Origins Hub")
+        self.root.geometry("550x650")  # Tamanho maior para acomodar melhor os elementos
+        self.root.configure(bg=DARK_BG)
+        self.root.resizable(False, False)
+        
+        # Garantir que a estrutura de diretórios exista
+        self.setup_directories()
+        
+        # Carregar dados dos jogos/scripts
+        self.load_games_data()
+        
+        # Aplicar tema personalizado
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        # Botão principal
+        self.style.configure('TButton', 
+                            background=DARK_BG, 
+                            foreground=TEXT_COLOR, 
+                            borderwidth=0,
+                            focuscolor=DARK_BG,
+                            lightcolor=DARK_BG,
+                            darkcolor=DARK_BG,
+                            bordercolor=DARK_BG,
+                            font=('Segoe UI', 10))
+        
+        self.style.map('TButton', 
+                      background=[('active', BUTTON_HOVER)],
+                      foreground=[('active', ACCENT_COLOR)])
+        
+        # Configurar fontes
+        self.header_font = ('Segoe UI', 16, 'bold')
+        self.subheader_font = ('Segoe UI', 12, 'bold')
+        self.normal_font = ('Segoe UI', 10)
+        
+        # Criar interface
+        self.create_widgets()
+        
+    def setup_directories(self):
+        """Cria a estrutura de diretórios necessária se não existir"""
+        try:
+            # Criar diretórios
+            os.makedirs(APP_DIR, exist_ok=True)
+            os.makedirs(WORKSPACE_DIR, exist_ok=True)
+            os.makedirs(PICTURES_DIR, exist_ok=True)
+            
+            # Verificar se o arquivo de dados existe, se não, criar um vazio
+            if not os.path.exists(DATA_FILE):
+                with open(DATA_FILE, 'w') as f:
+                    json.dump({}, f)
+                    
+            # Testar se o arquivo é um JSON válido
+            try:
+                with open(DATA_FILE, 'r') as f:
+                    json.load(f)
+            except json.JSONDecodeError:
+                # Se o arquivo estiver corrompido, criar um novo
+                with open(DATA_FILE, 'w') as f:
+                    json.dump({}, f)
+                    
+            return True
+        except Exception as e:
+            messagebox.showerror("Erro", f"Não foi possível criar os diretórios necessários: {str(e)}")
+            return False
+            
+    def load_games_data(self):
+        """Carrega os dados dos jogos e scripts do arquivo JSON"""
+        try:
+            with open(DATA_FILE, 'r') as f:
+                data = json.load(f)
+                self.scripts = data if data else {}
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Se o arquivo não existir ou estiver corrompido, iniciar com um dicionário vazio
+            self.scripts = {}
+            self.save_games_data()  # Criar o arquivo
+            
+    def save_games_data(self):
+        """Salva os dados dos jogos e scripts no arquivo JSON"""
+        try:
+            with open(DATA_FILE, 'w') as f:
+                json.dump(self.scripts, f, indent=4)
+            return True
+        except Exception as e:
+            messagebox.showerror("Erro", f"Não foi possível salvar os dados: {str(e)}")
+            return False
+            
+    def create_widgets(self):
+        # Criar header com logo
+        self.header_frame = tk.Frame(self.root, bg=DARKER_BG, height=80)
+        self.header_frame.pack(fill=tk.X, pady=0)
+        
+        # Logo e título
+        self.logo_label = tk.Label(self.header_frame, text="🎮", font=('Segoe UI', 24), bg=DARKER_BG, fg=ACCENT_COLOR)
+        self.logo_label.pack(side=tk.LEFT, padx=15)
+        
+        self.title_label = tk.Label(self.header_frame, text="Origins Hub", font=self.header_font, bg=DARKER_BG, fg=TEXT_COLOR)
+        self.title_label.pack(side=tk.LEFT, padx=5)
+        
+        # Separador
+        separator = ttk.Separator(self.root, orient='horizontal')
+        separator.pack(fill=tk.X, pady=0)
+        
+        # Frame principal
+        self.main_frame = tk.Frame(self.root, bg=DARK_BG)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Header frame com título e data/hora
+        self.header_content = tk.Frame(self.main_frame, bg=DARK_BG)
+        self.header_content.pack(fill=tk.X, pady=10)
+        
+        # Header dinâmico (à esquerda)
+        self.header = tk.Label(self.header_content, text="", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR)
+        self.header.pack(side=tk.LEFT, anchor='w')
+        
+        # Data e hora (à direita)
+        self.datetime_label = tk.Label(self.header_content, text="", font=self.normal_font, bg=DARK_BG, fg=SECONDARY_TEXT)
+        self.datetime_label.pack(side=tk.RIGHT, anchor='e')
+        self.update_datetime()
+        
+        # Container para conteúdo
+        self.content_frame = tk.Frame(self.main_frame, bg=DARK_BG)
+        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Status bar
+        self.status_frame = tk.Frame(self.root, bg=DARKER_BG, height=30)
+        self.status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        
+        self.status_label = tk.Label(self.status_frame, text="Pronto", bg=DARKER_BG, fg=SECONDARY_TEXT, font=('Segoe UI', 9))
+        self.status_label.pack(pady=5)
+        
+        # Iniciar na tela de jogos
+        self.mostrar_jogos()
+        
+    def limpar_tela(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+            
+    def mostrar_jogos(self):
+        self.limpar_tela()
+        self.header.config(text="Selecione o jogo")
+        
+        # Container para cards e botão de adição
+        main_container = tk.Frame(self.content_frame, bg=DARK_BG)
+        main_container.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Botão para adicionar novo jogo
+        add_game_btn = tk.Button(main_container, text="➕ Adicionar Novo Jogo", bg=DARKER_BG, fg=TEXT_COLOR,
+                              font=self.normal_font, bd=0, padx=15, pady=8,
+                              highlightthickness=1, highlightbackground=SUCCESS_COLOR, relief="ridge",
+                              activebackground=BUTTON_HOVER, activeforeground=SUCCESS_COLOR,
+                              command=self.adicionar_jogo)
+        add_game_btn.pack(pady=(0, 15), anchor=tk.W)
+        
+        # Efeito hover para o botão de adicionar
+        add_game_btn.bind("<Enter>", lambda e, b=add_game_btn: b.config(fg=SUCCESS_COLOR))
+        add_game_btn.bind("<Leave>", lambda e, b=add_game_btn: b.config(fg=TEXT_COLOR))
+        
+        # Container para cards
+        games_container = tk.Frame(main_container, bg=DARK_BG)
+        games_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Verificar se há jogos para exibir
+        if not self.scripts:
+            # Mensagem quando não há jogos
+            empty_label = tk.Label(games_container, text="Nenhum jogo adicionado.\nClique em '➕ Adicionar Novo Jogo' para começar.",
+                                font=self.normal_font, bg=DARK_BG, fg=SECONDARY_TEXT, justify=tk.CENTER)
+            empty_label.pack(expand=True, pady=50)
+            return
+            
+        # Criar um card para cada jogo
+        row, col = 0, 0
+        for i, nome_jogo in enumerate(self.scripts):
+            # Frame para o card com bordas arredondadas
+            card = tk.Frame(games_container, bg=DARKER_BG, width=230, height=120, padx=5, pady=5,
+                          highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+            card.pack_propagate(False)  # Manter tamanho fixo
+            
+            # Título do card
+            tk.Label(card, text=nome_jogo, font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR).pack(pady=5)
+            
+            # Contar scripts
+            script_count = len(self.scripts[nome_jogo])
+            # Não contar campo _info como script
+            if "_info" in self.scripts[nome_jogo]:
+                script_count -= 1
+            tk.Label(card, text=f"{script_count} scripts disponíveis", font=self.normal_font, bg=DARKER_BG, fg=SECONDARY_TEXT).pack(pady=2)
+            
+            # Botão de acesso com bordas arredondadas
+            btn = tk.Button(card, text="Acessar Scripts", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, highlightthickness=1, highlightbackground=ACCENT_COLOR,
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR, relief="ridge",
+                          borderwidth=1, padx=10, pady=5,
+                          command=lambda j=nome_jogo: self.mostrar_scripts(j))
+            btn.pack(pady=10)
+            
+            # Efeito hover
+            btn.bind("<Enter>", lambda e, b=btn: b.config(fg=ACCENT_COLOR))
+            btn.bind("<Leave>", lambda e, b=btn: b.config(fg=TEXT_COLOR))
+            
+            # Ajustar grid
+            col += 1
+            if col > 1:  # 2 cards por linha
+                col = 0
+                row += 1
+                
+        # Configurar grid para expansão
+        for i in range(2):
+            games_container.grid_columnconfigure(i, weight=1)
+            
+    def adicionar_jogo(self):
+        """Abre uma janela para adicionar um novo jogo"""
+        # Criar janela de diálogo
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Adicionar Novo Jogo")
+        dialog.geometry("400x300")
+        dialog.configure(bg=DARK_BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)  # Torna modal
+        dialog.grab_set()  # Bloqueia a janela principal
+        
+        # Centralizar a janela
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Container principal
+        main_frame = tk.Frame(dialog, bg=DARK_BG, padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Título
+        tk.Label(main_frame, text="Adicionar Novo Jogo", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR).pack(pady=(0, 15))
+        
+        # Campo de nome do jogo
+        tk.Label(main_frame, text="Nome do Jogo:", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        nome_entry = tk.Entry(main_frame, font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, insertbackground=TEXT_COLOR,
+                           highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        nome_entry.pack(fill=tk.X, pady=(0, 10))
+        nome_entry.focus_set()  # Focar no campo de entrada
+        
+        # Variável para armazenar o caminho da imagem selecionada
+        imagem_path = tk.StringVar()
+        
+        # Frame para selecionar imagem
+        img_frame = tk.Frame(main_frame, bg=DARK_BG)
+        img_frame.pack(fill=tk.X, pady=10)
+        
+        tk.Label(img_frame, text="Imagem do Jogo (opcional):", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(5, 5))
+        
+        # Label para exibir o caminho da imagem selecionada
+        img_path_label = tk.Label(img_frame, text="Nenhuma imagem selecionada", font=self.normal_font, bg=DARK_BG, fg=SECONDARY_TEXT, wraplength=350)
+        img_path_label.pack(fill=tk.X, pady=(0, 5))
+        
+        # Botão para selecionar imagem
+        def selecionar_imagem():
+            file_path = filedialog.askopenfilename(
+                title="Selecionar imagem",
+                initialdir=PICTURES_DIR,
+                filetypes=[("Imagens", "*.png *.jpg *.jpeg *.gif *.bmp")]
+            )
+            if file_path:
+                # Verificar se o arquivo está no diretório esperado
+                if os.path.dirname(file_path) != PICTURES_DIR:
+                    messagebox.showwarning("Aviso", f"Por favor, selecione uma imagem da pasta {PICTURES_DIR}")
+                    return
+                    
+                imagem_path.set(os.path.basename(file_path))  # Guardar apenas o nome do arquivo
+                img_path_label.config(text=os.path.basename(file_path))
+        
+        select_img_btn = tk.Button(img_frame, text="Escolher Imagem", bg=DARKER_BG, fg=TEXT_COLOR,
+                                font=self.normal_font, bd=0, padx=10, pady=5,
+                                highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                                activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                                command=selecionar_imagem)
+        select_img_btn.pack(anchor=tk.W)
+        
+        # Efeito hover
+        select_img_btn.bind("<Enter>", lambda e, b=select_img_btn: b.config(fg=ACCENT_COLOR))
+        select_img_btn.bind("<Leave>", lambda e, b=select_img_btn: b.config(fg=TEXT_COLOR))
+        
+        # Frame para botões de ação
+        btn_frame = tk.Frame(main_frame, bg=DARK_BG)
+        btn_frame.pack(fill=tk.X, pady=(20, 0), side=tk.BOTTOM)
+        
+        # Função para salvar o novo jogo
+        def salvar_jogo():
+            nome = nome_entry.get().strip()
+            
+            # Validar nome
+            if not nome:
+                messagebox.showerror("Erro", "O nome do jogo é obrigatório.")
+                return
+                
+            # Verificar se o jogo já existe
+            if nome in self.scripts:
+                messagebox.showerror("Erro", f"O jogo '{nome}' já existe.")
+                return
+                
+            # Criar entrada para o novo jogo
+            self.scripts[nome] = {}
+            
+            # Adicionar caminho da imagem se selecionada
+            if imagem_path.get():
+                # Aqui podemos adicionar um campo para a imagem nos dados do jogo
+                # Por exemplo, podemos criar um campo especial "_info" para metadados
+                if "_info" not in self.scripts[nome]:
+                    self.scripts[nome]["_info"] = {}
+                self.scripts[nome]["_info"]["image"] = imagem_path.get()
+            
+            # Salvar dados
+            if self.save_games_data():
+                messagebox.showinfo("Sucesso", f"Jogo '{nome}' adicionado com sucesso!")
+                dialog.destroy()
+                # Atualizar a tela de jogos
+                self.mostrar_jogos()
+        
+        # Botão cancelar
+        cancel_btn = tk.Button(btn_frame, text="Cancelar", bg=DARKER_BG, fg=TEXT_COLOR,
+                            font=self.normal_font, bd=0, padx=15, pady=8,
+                            highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                            activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                            command=dialog.destroy)
+        cancel_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Efeito hover
+        cancel_btn.bind("<Enter>", lambda e, b=cancel_btn: b.config(fg=ACCENT_COLOR))
+        cancel_btn.bind("<Leave>", lambda e, b=cancel_btn: b.config(fg=TEXT_COLOR))
+        
+        # Botão salvar
+        save_btn = tk.Button(btn_frame, text="Salvar", bg=DARKER_BG, fg=SUCCESS_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=SUCCESS_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=SUCCESS_COLOR,
+                          command=salvar_jogo)
+        save_btn.pack(side=tk.RIGHT)
+        
+        # Efeito hover
+        save_btn.bind("<Enter>", lambda e, b=save_btn: b.config(bg=BUTTON_HOVER))
+        save_btn.bind("<Leave>", lambda e, b=save_btn: b.config(bg=DARKER_BG))
+        
+        # Ligação para tecla Enter
+        dialog.bind("<Return>", lambda event: salvar_jogo())
+        
+        # Esperando que o diálogo seja fechado
+        dialog.wait_window()
+
+    def mostrar_scripts(self, jogo):
+        self.limpar_tela()
+        self.header.config(text=f"Scripts de {jogo}")
+        
+        # Container para scripts e botão de adição
+        main_container = tk.Frame(self.content_frame, bg=DARK_BG)
+        main_container.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Botão para adicionar novo script
+        add_script_btn = tk.Button(main_container, text="➕ Adicionar Script", bg=DARKER_BG, fg=TEXT_COLOR,
+                                font=self.normal_font, bd=0, padx=15, pady=8,
+                                highlightthickness=1, highlightbackground=SUCCESS_COLOR, relief="ridge",
+                                activebackground=BUTTON_HOVER, activeforeground=SUCCESS_COLOR,
+                                command=lambda: self.adicionar_script(jogo))
+        add_script_btn.pack(pady=(0, 15), anchor=tk.W)
+        
+        # Efeito hover para o botão de adicionar
+        add_script_btn.bind("<Enter>", lambda e, b=add_script_btn: b.config(fg=SUCCESS_COLOR))
+        add_script_btn.bind("<Leave>", lambda e, b=add_script_btn: b.config(fg=TEXT_COLOR))
+        
+        # Container para scripts com scroll
+        scripts_canvas = tk.Canvas(main_container, bg=DARK_BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=scripts_canvas.yview)
+        scrollable_frame = tk.Frame(scripts_canvas, bg=DARK_BG)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: scripts_canvas.configure(scrollregion=scripts_canvas.bbox("all"))
+        )
+        
+        scripts_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scripts_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        scripts_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Verificar se há scripts para exibir (excluindo o campo _info)
+        script_names = [name for name in self.scripts[jogo] if name != "_info"]
+        
+        if not script_names:
+            # Mensagem quando não há scripts
+            empty_label = tk.Label(scrollable_frame, text=f"Nenhum script adicionado para {jogo}.\nClique em '➕ Adicionar Script' para começar.",
+                                font=self.normal_font, bg=DARK_BG, fg=SECONDARY_TEXT, justify=tk.CENTER)
+            empty_label.pack(expand=True, pady=50)
+        else:
+            # Adicionar scripts
+            for script_nome in script_names:
+                script_info = self.scripts[jogo][script_nome]
+                
+                # Frame para o card do script com bordas arredondadas
+                card = tk.Frame(scrollable_frame, bg=DARKER_BG, padx=10, pady=10, width=480,
+                             highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+                card.pack(fill=tk.X, pady=8, padx=5)
+                
+                # Título do script
+                tk.Label(card, text=script_nome, font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR, anchor='w').pack(fill=tk.X, pady=(0, 5))
+                
+                # Descrição
+                if "description" in script_info:
+                    desc_label = tk.Label(card, text=script_info["description"], 
+                                       font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR,
+                                       wraplength=400, justify='left', anchor='w')
+                    desc_label.pack(fill=tk.X, pady=5)
+                
+                # Informações adicionais
+                info_frame = tk.Frame(card, bg=DARKER_BG)
+                info_frame.pack(fill=tk.X, pady=5)
+                
+                # Key info
+                key_text = "✓ Key Necessária" if script_info.get('key', False) else "✗ Sem Key"
+                key_color = WARNING_COLOR if script_info.get('key', False) else SUCCESS_COLOR
+                tk.Label(info_frame, text=key_text, font=self.normal_font, bg=DARKER_BG, fg=key_color).pack(side=tk.LEFT, padx=(0, 15))
+                
+                # Botões de ação
+                button_frame = tk.Frame(card, bg=DARKER_BG)
+                button_frame.pack(fill=tk.X, pady=8)
+                
+                # Botão copiar script com bordas arredondadas
+                copy_btn = tk.Button(button_frame, text="Copiar Script", bg=DARKER_BG, fg=TEXT_COLOR,
+                                 font=self.normal_font, bd=0, padx=15, pady=6,
+                                 highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                                 activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                                 command=lambda code=script_info.get('code', ''), name=script_nome: self.copiar_script(code, name))
+                copy_btn.pack(side=tk.LEFT, padx=(0, 10))
+                
+                # Efeitos hover
+                copy_btn.bind("<Enter>", lambda e, b=copy_btn: b.config(fg=ACCENT_COLOR))
+                copy_btn.bind("<Leave>", lambda e, b=copy_btn: b.config(fg=TEXT_COLOR))
+                
+                # Botão Discord com bordas arredondadas
+                if script_info.get('discord', ''):
+                    discord_btn = tk.Button(button_frame, text="Discord", bg=DARKER_BG, fg=TEXT_COLOR,
+                                        font=self.normal_font, bd=0, padx=15, pady=6,
+                                        highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                                        activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                                        command=lambda link=script_info.get('discord', ''): self.open_link(link))
+                    discord_btn.pack(side=tk.LEFT, padx=(0, 10))
+                    discord_btn.bind("<Enter>", lambda e, b=discord_btn: b.config(fg=ACCENT_COLOR))
+                    discord_btn.bind("<Leave>", lambda e, b=discord_btn: b.config(fg=TEXT_COLOR))
+                
+                # Botão key (se necessário) com bordas arredondadas
+                if script_info.get('key', False) and script_info.get('key_link', ''):
+                    key_btn = tk.Button(button_frame, text="Obter Key", bg=DARKER_BG, fg=WARNING_COLOR,
+                                     font=self.normal_font, bd=0, padx=15, pady=6,
+                                     highlightthickness=1, highlightbackground=WARNING_COLOR, relief="ridge",
+                                     activebackground=BUTTON_HOVER, activeforeground=WARNING_COLOR,
+                                     command=lambda link=script_info.get('key_link', ''): self.open_link(link))
+                    key_btn.pack(side=tk.LEFT)
+                    key_btn.bind("<Enter>", lambda e, b=key_btn: b.config(bg=BUTTON_HOVER))
+                    key_btn.bind("<Leave>", lambda e, b=key_btn: b.config(bg=DARKER_BG))
+                
+                # Botão para exibir mais detalhes
+                details_btn = tk.Button(button_frame, text="Detalhes", bg=DARKER_BG, fg=TEXT_COLOR,
+                                     font=self.normal_font, bd=0, padx=15, pady=6,
+                                     highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                                     activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                                     command=lambda j=jogo, s=script_nome: self.mostrar_info_script(j, s))
+                details_btn.pack(side=tk.RIGHT)
+                details_btn.bind("<Enter>", lambda e, b=details_btn: b.config(fg=ACCENT_COLOR))
+                details_btn.bind("<Leave>", lambda e, b=details_btn: b.config(fg=TEXT_COLOR))
+        
+        # Botão voltar com bordas arredondadas
+        back_btn = tk.Button(self.content_frame, text="Voltar", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                          command=self.mostrar_jogos)
+        back_btn.pack(pady=15)
+        back_btn.bind("<Enter>", lambda e, b=back_btn: b.config(fg=ACCENT_COLOR))
+        back_btn.bind("<Leave>", lambda e, b=back_btn: b.config(fg=TEXT_COLOR))
+        
+    def adicionar_script(self, jogo):
+        """Abre uma janela para adicionar um novo script ao jogo"""
+        # Criar janela de diálogo
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Adicionar Script
