@@ -4,7 +4,7 @@ falaa claude então o aquivo A é o script que vc deve usar então eu quero que 
 3. Adicionar Novo Script a um Jogo Existente: * Dentro da tela de scripts de um jogo específico, há um botão "➕ Adicionar Script". * Ao clicar, uma janela solicitará os seguintes detalhes do script: * Nome do Script (obrigatório) * Código (obrigatório) * Descrição (obrigatório, mínimo de 6 caracteres) * Requer Chave? (Sim/Não - obrigatório) * Link da Chave (obrigatório se "Requer Chave?" for "Sim") * Link do Discord (opcional) * Validações são aplicadas para garantir que os campos obrigatórios sejam preenchidos e que a descrição atenda ao comprimento mínimo. * Os scripts adicionados são salvos permanentemente no arquivo games_data.json associados ao jogo correspondente. * A lista de scripts do jogo é atualizada. 
 4. Persistência de Dados: * Todas as informações sobre jogos e scripts são carregadas do arquivo /home/user/script_hub/games_data.json ao iniciar o programa e salvas de volta neste arquivo sempre que um novo jogo ou script é adicionado.
 e eu peço que voce separe esse codigo wue vc vai criar em partes em 4 partes agora vc vai fazer 1 parte eu vou citala como B e após issovou iniciar um novo chat com essas informaçoes porem ele vai continuar seu trabalho no B termina a part 2 dando c (mas lembre_se por chat eu quero que vc responda as parts sem que de o limite de msg)
-se tiver alguma duvida pode perguntar
+se tiver alguma duvida pode perguntar faça como se a separacão for por uma linha e que eu possa cpiar todas as partes e colara e só tirar a linha que separa os codigo que vai ser escrito como (tirar linha)
 Claude IA (B) (Fez o a parte B):Na parte B do código do OriginHub, implementei as seguintes funcionalidades:
 
 Criação automática de pastas e arquivos:
