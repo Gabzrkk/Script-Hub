@@ -1,0 +1,411 @@
+import tkinter as tk
+from tkinter import ttk, font
+import pyperclip
+from PIL import Image, ImageTk
+import os
+import webbrowser
+import threading
+import time
+
+# Cores modernas com tema escuro
+DARK_BG = "#1e1e2e"
+DARKER_BG = "#181825"
+ACCENT_COLOR = "#cba6f7"  # Roxo claro para destaque
+TEXT_COLOR = "#cdd6f4"
+SECONDARY_TEXT = "#a6adc8"
+SUCCESS_COLOR = "#a6e3a1"
+BUTTON_HOVER = "#313244"
+WARNING_COLOR = "#f9e2af"
+
+class OriginHub:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Origins Hub")
+        self.root.geometry("550x650")  # Tamanho maior para acomodar melhor os elementos
+        self.root.configure(bg=DARK_BG)
+        self.root.resizable(False, False)
+        
+        # Aplicar tema personalizado
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        
+        # Botão principal
+        self.style.configure('TButton', 
+                            background=DARK_BG, 
+                            foreground=TEXT_COLOR, 
+                            borderwidth=0,
+                            focuscolor=DARK_BG,
+                            lightcolor=DARK_BG,
+                            darkcolor=DARK_BG,
+                            bordercolor=DARK_BG,
+                            font=('Segoe UI', 10))
+        
+        self.style.map('TButton', 
+                      background=[('active', BUTTON_HOVER)],
+                      foreground=[('active', ACCENT_COLOR)])
+        
+        # Configurar fontes
+        self.header_font = ('Segoe UI', 16, 'bold')
+        self.subheader_font = ('Segoe UI', 12, 'bold')
+        self.normal_font = ('Segoe UI', 10)
+        
+        # Scripts disponíveis
+        self.scripts = {
+            "Blox Fruits": {
+                "Script 1": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/bloxfruits/main/script1.lua'))()",
+                    "key": False,
+                    "key_link": "",
+                    "discord": "https://discord.gg/exemplo1",
+                    "description": "Script básico para Blox Fruits com recursos de farm automático"
+                },
+                "Script 2": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/bloxfruits/main/script2.lua'))()",
+                    "key": True,
+                    "key_link": "https://example.com/key1",
+                    "discord": "https://discord.gg/exemplo1",
+                    "description": "Script avançado com recursos premium, necessita key"
+                }
+            },
+            "Doors": {
+                "Script 1": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/doors/main/script1.lua'))()",
+                    "key": False,
+                    "key_link": "",
+                    "discord": "https://discord.gg/exemplo2",
+                    "description": "Bypass para portas com recursos de auto-farm"
+                }
+            },
+            "Build A Boat": {
+                "Script 1": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/buildaboat/main/script1.lua'))()",
+                    "key": False,
+                    "key_link": "",
+                    "discord": "https://discord.gg/exemplo3",
+                    "description": "Script para farm automático e construção rápida de barcos"
+                },
+                "Script Premium": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/buildaboat/main/premium.lua'))()",
+                    "key": True,
+                    "key_link": "https://example.com/key2",
+                    "discord": "https://discord.gg/exemplo3",
+                    "description": "Script premium com recursos avançados para Build A Boat"
+                }
+            },
+            "Arsenal": {
+                "Script A": {
+                    "code": "loadstring(game:HttpGet('https://raw.githubusercontent.com/seuuser/arsenal/main/scriptA.lua'))()",
+                    "key": True,
+                    "key_link": "https://example.com/keyA",
+                    "discord": "https://discord.gg/exemplo3",
+                    "description": "Aimbot e ESP para Arsenal, requer key para ativar"
+                }
+            }
+        }
+        
+        # Criar interface
+        self.create_widgets()
+        
+    def create_widgets(self):
+        # Criar header com logo
+        self.header_frame = tk.Frame(self.root, bg=DARKER_BG, height=80)
+        self.header_frame.pack(fill=tk.X, pady=0)
+        
+        # Logo e título
+        self.logo_label = tk.Label(self.header_frame, text="🎮", font=('Segoe UI', 24), bg=DARKER_BG, fg=ACCENT_COLOR)
+        self.logo_label.pack(side=tk.LEFT, padx=15)
+        
+        self.title_label = tk.Label(self.header_frame, text="Origins Hub", font=self.header_font, bg=DARKER_BG, fg=TEXT_COLOR)
+        self.title_label.pack(side=tk.LEFT, padx=5)
+        
+        # Separador
+        separator = ttk.Separator(self.root, orient='horizontal')
+        separator.pack(fill=tk.X, pady=0)
+        
+        # Frame principal
+        self.main_frame = tk.Frame(self.root, bg=DARK_BG)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Header frame com título e data/hora
+        self.header_content = tk.Frame(self.main_frame, bg=DARK_BG)
+        self.header_content.pack(fill=tk.X, pady=10)
+        
+        # Header dinâmico (à esquerda)
+        self.header = tk.Label(self.header_content, text="", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR)
+        self.header.pack(side=tk.LEFT, anchor='w')
+        
+        # Data e hora (à direita)
+        self.datetime_label = tk.Label(self.header_content, text="", font=self.normal_font, bg=DARK_BG, fg=SECONDARY_TEXT)
+        self.datetime_label.pack(side=tk.RIGHT, anchor='e')
+        self.update_datetime()
+        
+        # Container para conteúdo
+        self.content_frame = tk.Frame(self.main_frame, bg=DARK_BG)
+        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Status bar
+        self.status_frame = tk.Frame(self.root, bg=DARKER_BG, height=30)
+        self.status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        
+        self.status_label = tk.Label(self.status_frame, text="Pronto", bg=DARKER_BG, fg=SECONDARY_TEXT, font=('Segoe UI', 9))
+        self.status_label.pack(pady=5)
+        
+        # Iniciar na tela de jogos
+        self.mostrar_jogos()
+        
+    def limpar_tela(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+            
+    def mostrar_jogos(self):
+        self.limpar_tela()
+        self.header.config(text="Selecione o jogo")
+        
+        # Container para cards
+        games_container = tk.Frame(self.content_frame, bg=DARK_BG)
+        games_container.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        # Criar um card para cada jogo
+        row, col = 0, 0
+        for i, nome_jogo in enumerate(self.scripts):
+            # Frame para o card com bordas arredondadas
+            card = tk.Frame(games_container, bg=DARKER_BG, width=230, height=120, padx=5, pady=5,
+                          highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+            card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+            card.pack_propagate(False)  # Manter tamanho fixo
+            
+            # Título do card
+            tk.Label(card, text=nome_jogo, font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR).pack(pady=5)
+            
+            # Contar scripts
+            script_count = len(self.scripts[nome_jogo])
+            tk.Label(card, text=f"{script_count} scripts disponíveis", font=self.normal_font, bg=DARKER_BG, fg=SECONDARY_TEXT).pack(pady=2)
+            
+            # Botão de acesso com bordas arredondadas
+            btn = tk.Button(card, text="Acessar Scripts", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, highlightthickness=1, highlightbackground=ACCENT_COLOR,
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR, relief="ridge",
+                          borderwidth=1, padx=10, pady=5,
+                          command=lambda j=nome_jogo: self.mostrar_scripts(j))
+            btn.pack(pady=10)
+            
+            # Efeito hover
+            btn.bind("<Enter>", lambda e, b=btn: b.config(fg=ACCENT_COLOR))
+            btn.bind("<Leave>", lambda e, b=btn: b.config(fg=TEXT_COLOR))
+            
+            # Ajustar grid
+            col += 1
+            if col > 1:  # 2 cards por linha
+                col = 0
+                row += 1
+                
+        # Configurar grid para expansão
+        for i in range(2):
+            games_container.grid_columnconfigure(i, weight=1)
+            
+    def mostrar_scripts(self, jogo):
+        self.limpar_tela()
+        self.header.config(text=f"Scripts de {jogo}")
+        
+        # Container para scripts
+        scripts_canvas = tk.Canvas(self.content_frame, bg=DARK_BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.content_frame, orient="vertical", command=scripts_canvas.yview)
+        scrollable_frame = tk.Frame(scripts_canvas, bg=DARK_BG)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: scripts_canvas.configure(scrollregion=scripts_canvas.bbox("all"))
+        )
+        
+        scripts_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scripts_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        scripts_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Adicionar scripts
+        for script_nome in self.scripts[jogo]:
+            script_info = self.scripts[jogo][script_nome]
+            
+            # Frame para o card do script com bordas arredondadas
+            card = tk.Frame(scrollable_frame, bg=DARKER_BG, padx=10, pady=10, width=480,
+                         highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+            card.pack(fill=tk.X, pady=8, padx=5)
+            
+            # Título do script
+            tk.Label(card, text=script_nome, font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR, anchor='w').pack(fill=tk.X, pady=(0, 5))
+            
+            # Descrição
+            if "description" in script_info:
+                desc_label = tk.Label(card, text=script_info["description"], 
+                                   font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR,
+                                   wraplength=400, justify='left', anchor='w')
+                desc_label.pack(fill=tk.X, pady=5)
+            
+            # Informações adicionais
+            info_frame = tk.Frame(card, bg=DARKER_BG)
+            info_frame.pack(fill=tk.X, pady=5)
+            
+            # Key info
+            key_text = "✓ Key Necessária" if script_info['key'] else "✗ Sem Key"
+            key_color = WARNING_COLOR if script_info['key'] else SUCCESS_COLOR
+            tk.Label(info_frame, text=key_text, font=self.normal_font, bg=DARKER_BG, fg=key_color).pack(side=tk.LEFT, padx=(0, 15))
+            
+            # Botões de ação
+            button_frame = tk.Frame(card, bg=DARKER_BG)
+            button_frame.pack(fill=tk.X, pady=8)
+            
+            # Botão copiar script com bordas arredondadas
+            copy_btn = tk.Button(button_frame, text="Copiar Script", bg=DARKER_BG, fg=TEXT_COLOR,
+                             font=self.normal_font, bd=0, padx=15, pady=6,
+                             highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                             activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                             command=lambda code=script_info['code'], name=script_nome: self.copiar_script(code, name))
+            copy_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
+            # Efeitos hover
+            copy_btn.bind("<Enter>", lambda e, b=copy_btn: b.config(fg=ACCENT_COLOR))
+            copy_btn.bind("<Leave>", lambda e, b=copy_btn: b.config(fg=TEXT_COLOR))
+            
+            # Botão Discord com bordas arredondadas
+            if script_info['discord']:
+                discord_btn = tk.Button(button_frame, text="Discord", bg=DARKER_BG, fg=TEXT_COLOR,
+                                    font=self.normal_font, bd=0, padx=15, pady=6,
+                                    highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                                    activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                                    command=lambda link=script_info['discord']: self.open_link(link))
+                discord_btn.pack(side=tk.LEFT, padx=(0, 10))
+                discord_btn.bind("<Enter>", lambda e, b=discord_btn: b.config(fg=ACCENT_COLOR))
+                discord_btn.bind("<Leave>", lambda e, b=discord_btn: b.config(fg=TEXT_COLOR))
+            
+            # Botão key (se necessário) com bordas arredondadas
+            if script_info['key'] and script_info['key_link']:
+                key_btn = tk.Button(button_frame, text="Obter Key", bg=DARKER_BG, fg=WARNING_COLOR,
+                                 font=self.normal_font, bd=0, padx=15, pady=6,
+                                 highlightthickness=1, highlightbackground=WARNING_COLOR, relief="ridge",
+                                 activebackground=BUTTON_HOVER, activeforeground=WARNING_COLOR,
+                                 command=lambda link=script_info['key_link']: self.open_link(link))
+                key_btn.pack(side=tk.LEFT)
+                key_btn.bind("<Enter>", lambda e, b=key_btn: b.config(bg=BUTTON_HOVER))
+                key_btn.bind("<Leave>", lambda e, b=key_btn: b.config(bg=DARKER_BG))
+        
+        # Botão voltar com bordas arredondadas
+        back_btn = tk.Button(self.content_frame, text="Voltar", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                          command=self.mostrar_jogos)
+        back_btn.pack(pady=15)
+        back_btn.bind("<Enter>", lambda e, b=back_btn: b.config(fg=ACCENT_COLOR))
+        back_btn.bind("<Leave>", lambda e, b=back_btn: b.config(fg=TEXT_COLOR))
+        
+    def mostrar_info_script(self, jogo, script_nome):
+        self.limpar_tela()
+        info = self.scripts[jogo][script_nome]
+        self.header.config(text=script_nome)
+        
+        # Container principal
+        info_frame = tk.Frame(self.content_frame, bg=DARK_BG)
+        info_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        # Descrição
+        if "description" in info:
+            desc_frame = tk.Frame(info_frame, bg=DARKER_BG, padx=15, pady=15)
+            desc_frame.pack(fill=tk.X, pady=10)
+            
+            tk.Label(desc_frame, text="Descrição", font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR).pack(anchor='w')
+            tk.Label(desc_frame, text=info["description"], font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, 
+                   wraplength=400, justify='left').pack(anchor='w', pady=5)
+        
+        # Informações
+        details_frame = tk.Frame(info_frame, bg=DARKER_BG, padx=15, pady=15)
+        details_frame.pack(fill=tk.X, pady=10)
+        
+        tk.Label(details_frame, text="Informações", font=self.subheader_font, bg=DARKER_BG, fg=ACCENT_COLOR).pack(anchor='w')
+        
+        # Status de key
+        key_text = "Necessita de key: Sim" if info['key'] else "Necessita de key: Não"
+        key_color = WARNING_COLOR if info['key'] else SUCCESS_COLOR
+        tk.Label(details_frame, text=key_text, font=self.normal_font, bg=DARKER_BG, fg=key_color).pack(anchor='w', pady=5)
+        
+        # Link da key
+        if info['key'] and info['key_link']:
+            key_frame = tk.Frame(details_frame, bg=DARKER_BG)
+            key_frame.pack(fill=tk.X, pady=5)
+            
+            tk.Label(key_frame, text="Link da Key:", font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(0, 5))
+            
+            link_label = tk.Label(key_frame, text=info['key_link'], font=self.normal_font, bg=DARKER_BG, fg=ACCENT_COLOR, cursor="hand2")
+            link_label.pack(side=tk.LEFT)
+            link_label.bind("<Button-1>", lambda e, link=info['key_link']: self.open_link(link))
+            link_label.bind("<Enter>", lambda e, l=link_label: l.config(font=('Segoe UI', 10, 'underline')))
+            link_label.bind("<Leave>", lambda e, l=link_label: l.config(font=('Segoe UI', 10)))
+        
+        # Discord
+        if info['discord']:
+            discord_frame = tk.Frame(details_frame, bg=DARKER_BG)
+            discord_frame.pack(fill=tk.X, pady=5)
+            
+            tk.Label(discord_frame, text="Discord:", font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR).pack(side=tk.LEFT, padx=(0, 5))
+            
+            discord_label = tk.Label(discord_frame, text=info['discord'], font=self.normal_font, bg=DARKER_BG, fg=ACCENT_COLOR, cursor="hand2")
+            discord_label.pack(side=tk.LEFT)
+            discord_label.bind("<Button-1>", lambda e, link=info['discord']: self.open_link(link))
+            discord_label.bind("<Enter>", lambda e, l=discord_label: l.config(font=('Segoe UI', 10, 'underline')))
+            discord_label.bind("<Leave>", lambda e, l=discord_label: l.config(font=('Segoe UI', 10)))
+        
+        # Botões de ação
+        action_frame = tk.Frame(info_frame, bg=DARK_BG, pady=15)
+        action_frame.pack(fill=tk.X)
+        
+        # Botão copiar script com bordas arredondadas
+        copy_btn = tk.Button(action_frame, text="Copiar Script", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                          command=lambda: self.copiar_script(info['code'], script_nome))
+        copy_btn.pack(side=tk.LEFT, padx=(0, 15))
+        copy_btn.bind("<Enter>", lambda e, b=copy_btn: b.config(fg=ACCENT_COLOR))
+        copy_btn.bind("<Leave>", lambda e, b=copy_btn: b.config(fg=TEXT_COLOR))
+        
+        # Botão voltar com bordas arredondadas
+        back_btn = tk.Button(action_frame, text="Voltar", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                          command=lambda: self.mostrar_scripts(jogo))
+        back_btn.pack(side=tk.LEFT)
+        back_btn.bind("<Enter>", lambda e, b=back_btn: b.config(fg=ACCENT_COLOR))
+        back_btn.bind("<Leave>", lambda e, b=back_btn: b.config(fg=TEXT_COLOR))
+            
+    def copiar_script(self, script_code, nome_script):
+        pyperclip.copy(script_code)
+        self.status_label.config(text=f"✅ Script '{nome_script}' copiado!", fg=SUCCESS_COLOR)
+        
+        # Restaurar mensagem após alguns segundos
+        threading.Thread(target=self.reset_status, daemon=True).start()
+    
+    def reset_status(self):
+        time.sleep(3)
+        self.status_label.config(text="Pronto", fg=SECONDARY_TEXT)
+    
+    def update_datetime(self):
+        # Atualizar data e hora
+        from datetime import datetime
+        now = datetime.now()
+        date_str = now.strftime("%d/%m/%Y %H:%M:%S")
+        self.datetime_label.config(text=date_str)
+        # Atualizar a cada segundo
+        self.root.after(1000, self.update_datetime)
+        
+    def open_link(self, url):
+        webbrowser.open(url)
+        self.status_label.config(text=f"🌐 Abrindo link no navegador...", fg=ACCENT_COLOR)
+        
+        # Restaurar mensagem após alguns segundos
+        threading.Thread(target=self.reset_status, daemon=True).start()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = OriginHub(root)
+    root.mainloop()
