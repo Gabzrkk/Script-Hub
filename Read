@@ -30,6 +30,6 @@ Implementei mensagem informativa quando não há jogos cadastrados
 Mantive o design visual do tema escuro conforme o código original
 
 
-
+faça com que vc esta criando a part b e percebe que vai atingir o maximo de caracteres pegue e divida em subdivisões como B= b¹ b² isso valhe para o c,d,e e não NÃO DEIXE ATINGIR O MAXIMO DE CARACTERES DELE se não der pra escrever nada só escreva o codigo e escreva b¹ e oque falta para termina aquela parte/subparte 
 Na próxima parte (C), será implementada a funcionalidade de adicionar scripts a um jogo existente, com todas as validações e campos necessários.
 siga estritamente essa instrução
