@@ -1,3 +1,4 @@
+c¹:
 import tkinter as tk
 from tkinter import ttk, font, filedialog, messagebox, scrolledtext
 import pyperclip
@@ -515,3 +516,381 @@ class OriginHub:
         # Criar janela de diálogo
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Adicionar Script
+c²= import tkinter as tk
+from tkinter import ttk, font, filedialog, messagebox, scrolledtext
+import pyperclip
+from PIL import Image, ImageTk
+import os
+import webbrowser
+import threading
+import time
+import json
+from pathlib import Path
+
+# Continuação do código C da classe OriginHub
+# A partir da função adicionar_script
+
+    def adicionar_script(self, jogo):
+        """Abre uma janela para adicionar um novo script ao jogo"""
+        # Criar janela de diálogo
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Adicionar Script para {jogo}")
+        dialog.geometry("550x650")
+        dialog.configure(bg=DARK_BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)  # Torna modal
+        dialog.grab_set()  # Bloqueia a janela principal
+        
+        # Centralizar a janela
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Container principal com scroll
+        main_frame = tk.Frame(dialog, bg=DARK_BG)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Canvas para scroll
+        canvas = tk.Canvas(main_frame, bg=DARK_BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=DARK_BG, padx=20, pady=20)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Título
+        tk.Label(scrollable_frame, text="Adicionar Script", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR).pack(pady=(0, 15))
+        
+        # Campo de nome do script
+        tk.Label(scrollable_frame, text="Nome do Script:", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        nome_entry = tk.Entry(scrollable_frame, font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, 
+                           insertbackground=TEXT_COLOR, highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        nome_entry.pack(fill=tk.X, pady=(0, 10))
+        nome_entry.focus_set()  # Focar no campo de entrada
+        
+        # Campo de código do script
+        tk.Label(scrollable_frame, text="Código:", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        codigo_text = scrolledtext.ScrolledText(scrollable_frame, font=('Consolas', 10), bg=DARKER_BG, fg=TEXT_COLOR, 
+                                            insertbackground=TEXT_COLOR, height=10, 
+                                            highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        codigo_text.pack(fill=tk.X, pady=(0, 10))
+        
+        # Campo de descrição
+        tk.Label(scrollable_frame, text="Descrição (mín. 6 caracteres):", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        desc_text = scrolledtext.ScrolledText(scrollable_frame, font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, 
+                                          insertbackground=TEXT_COLOR, height=4, 
+                                          highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        desc_text.pack(fill=tk.X, pady=(0, 10))
+        
+        # Campo para indicar se requer chave
+        key_var = tk.StringVar(value="Não")  # Valor padrão
+        tk.Label(scrollable_frame, text="Requer Chave?", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        key_frame = tk.Frame(scrollable_frame, bg=DARK_BG)
+        key_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Radio buttons para sim/não
+        sim_radio = tk.Radiobutton(key_frame, text="Sim", variable=key_var, value="Sim", 
+                                bg=DARK_BG, fg=TEXT_COLOR, selectcolor=DARKER_BG,
+                                activebackground=DARK_BG, activeforeground=ACCENT_COLOR)
+        sim_radio.pack(side=tk.LEFT, padx=(0, 15))
+        
+        nao_radio = tk.Radiobutton(key_frame, text="Não", variable=key_var, value="Não", 
+                                bg=DARK_BG, fg=TEXT_COLOR, selectcolor=DARKER_BG,
+                                activebackground=DARK_BG, activeforeground=ACCENT_COLOR)
+        nao_radio.pack(side=tk.LEFT)
+        
+        # Campo para link da chave
+        key_link_frame = tk.Frame(scrollable_frame, bg=DARK_BG)
+        key_link_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(key_link_frame, text="Link da Chave:", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        key_link_entry = tk.Entry(key_link_frame, font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, 
+                              insertbackground=TEXT_COLOR, highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        key_link_entry.pack(fill=tk.X, pady=(0, 5))
+        
+        # Campo para link do Discord (opcional)
+        tk.Label(scrollable_frame, text="Link do Discord (opcional):", font=self.normal_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        discord_entry = tk.Entry(scrollable_frame, font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR, 
+                             insertbackground=TEXT_COLOR, highlightthickness=1, highlightbackground=ACCENT_COLOR, bd=0)
+        discord_entry.pack(fill=tk.X, pady=(0, 10))
+        
+        # Função para mostrar/ocultar o campo de link da chave com base na seleção
+        def toggle_key_link(*args):
+            if key_var.get() == "Sim":
+                key_link_frame.pack(fill=tk.X, pady=(0, 10))
+            else:
+                key_link_frame.pack_forget()
+                
+        # Registrar callback para a variável key_var
+        key_var.trace_add("write", toggle_key_link)
+        
+        # Chamar a função para configurar o estado inicial
+        toggle_key_link()
+        
+        # Frame para botões de ação
+        btn_frame = tk.Frame(scrollable_frame, bg=DARK_BG)
+        btn_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        # Função para salvar o novo script
+        def salvar_script():
+            nome = nome_entry.get().strip()
+            codigo = codigo_text.get("1.0", tk.END).strip()
+            descricao = desc_text.get("1.0", tk.END).strip()
+            requer_key = (key_var.get() == "Sim")
+            key_link = key_link_entry.get().strip()
+            discord = discord_entry.get().strip()
+            
+            # Validar campos obrigatórios
+            if not nome:
+                messagebox.showerror("Erro", "O nome do script é obrigatório.")
+                return
+                
+            if not codigo:
+                messagebox.showerror("Erro", "O código do script é obrigatório.")
+                return
+                
+            if len(descricao) < 6:
+                messagebox.showerror("Erro", "A descrição deve ter pelo menos 6 caracteres.")
+                return
+                
+            if requer_key and not key_link:
+                messagebox.showerror("Erro", "O link da chave é obrigatório quando o script requer chave.")
+                return
+                
+            # Verificar se o script já existe
+            if nome in self.scripts[jogo] and nome != "_info":
+                messagebox.showerror("Erro", f"Um script com o nome '{nome}' já existe para este jogo.")
+                return
+                
+            # Criar entrada para o novo script
+            self.scripts[jogo][nome] = {
+                "code": codigo,
+                "description": descricao,
+                "key": requer_key,
+                "key_link": key_link if requer_key else "",
+                "discord": discord
+            }
+            
+            # Salvar dados
+            if self.save_games_data():
+                messagebox.showinfo("Sucesso", f"Script '{nome}' adicionado com sucesso!")
+                dialog.destroy()
+                # Atualizar a tela de scripts
+                self.mostrar_scripts(jogo)
+        
+        # Botão cancelar
+        cancel_btn = tk.Button(btn_frame, text="Cancelar", bg=DARKER_BG, fg=TEXT_COLOR,
+                            font=self.normal_font, bd=0, padx=15, pady=8,
+                            highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                            activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                            command=dialog.destroy)
+        cancel_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Efeito hover
+        cancel_btn.bind("<Enter>", lambda e, b=cancel_btn: b.config(fg=ACCENT_COLOR))
+        cancel_btn.bind("<Leave>", lambda e, b=cancel_btn: b.config(fg=TEXT_COLOR))
+        
+        # Botão salvar
+        save_btn = tk.Button(btn_frame, text="Salvar", bg=DARKER_BG, fg=SUCCESS_COLOR,
+                          font=self.normal_font, bd=0, padx=20, pady=8,
+                          highlightthickness=1, highlightbackground=SUCCESS_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=SUCCESS_COLOR,
+                          command=salvar_script)
+        save_btn.pack(side=tk.RIGHT)
+        
+        # Efeito hover
+        save_btn.bind("<Enter>", lambda e, b=save_btn: b.config(bg=BUTTON_HOVER))
+        save_btn.bind("<Leave>", lambda e, b=save_btn: b.config(bg=DARKER_BG))
+
+    def mostrar_info_script(self, jogo, script_nome):
+        """Exibe uma janela com informações detalhadas sobre o script"""
+        # Verificar se o script existe
+        if script_nome not in self.scripts[jogo]:
+            messagebox.showerror("Erro", f"Script '{script_nome}' não encontrado.")
+            return
+            
+        script_info = self.scripts[jogo][script_nome]
+        
+        # Criar janela de diálogo
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Detalhes do Script: {script_nome}")
+        dialog.geometry("600x500")
+        dialog.configure(bg=DARK_BG)
+        dialog.resizable(False, False)
+        dialog.transient(self.root)  # Torna modal
+        dialog.grab_set()  # Bloqueia a janela principal
+        
+        # Centralizar a janela
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Container principal com scroll
+        main_frame = tk.Frame(dialog, bg=DARK_BG)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Canvas para scroll
+        canvas = tk.Canvas(main_frame, bg=DARK_BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=DARK_BG, padx=20, pady=20)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Título
+        tk.Label(scrollable_frame, text=script_nome, font=self.header_font, bg=DARK_BG, fg=ACCENT_COLOR).pack(pady=(0, 15))
+        
+        # Descrição
+        tk.Label(scrollable_frame, text="Descrição:", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        desc_frame = tk.Frame(scrollable_frame, bg=DARKER_BG, padx=10, pady=10,
+                           highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+        desc_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        desc_label = tk.Label(desc_frame, text=script_info.get("description", "Sem descrição disponível."),
+                           font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR,
+                           wraplength=520, justify=tk.LEFT)
+        desc_label.pack(anchor=tk.W)
+        
+        # Informações
+        info_frame = tk.Frame(scrollable_frame, bg=DARKER_BG, padx=10, pady=10,
+                           highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+        info_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Key info
+        key_text = "✓ Key Necessária" if script_info.get('key', False) else "✗ Sem Key"
+        key_color = WARNING_COLOR if script_info.get('key', False) else SUCCESS_COLOR
+        tk.Label(info_frame, text="Status da Key:", font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR).grid(row=0, column=0, sticky=tk.W, pady=5)
+        tk.Label(info_frame, text=key_text, font=self.normal_font, bg=DARKER_BG, fg=key_color).grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+        
+        # Link da Key
+        if script_info.get('key', False) and script_info.get('key_link', ''):
+            tk.Label(info_frame, text="Link da Key:", font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR).grid(row=1, column=0, sticky=tk.W, pady=5)
+            key_link_label = tk.Label(info_frame, text=script_info.get('key_link', ''),
+                                   font=self.normal_font, bg=DARKER_BG, fg=ACCENT_COLOR,
+                                   cursor="hand2")
+            key_link_label.grid(row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+            key_link_label.bind("<Button-1>", lambda e, link=script_info.get('key_link', ''): self.open_link(link))
+            
+        # Discord Link
+        if script_info.get('discord', ''):
+            tk.Label(info_frame, text="Discord:", font=self.normal_font, bg=DARKER_BG, fg=TEXT_COLOR).grid(row=2, column=0, sticky=tk.W, pady=5)
+            discord_link_label = tk.Label(info_frame, text=script_info.get('discord', ''),
+                                       font=self.normal_font, bg=DARKER_BG, fg=ACCENT_COLOR,
+                                       cursor="hand2")
+            discord_link_label.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+            discord_link_label.bind("<Button-1>", lambda e, link=script_info.get('discord', ''): self.open_link(link))
+        
+        # Código do script
+        tk.Label(scrollable_frame, text="Código:", font=self.subheader_font, bg=DARK_BG, fg=TEXT_COLOR).pack(anchor=tk.W, pady=(10, 5))
+        code_frame = tk.Frame(scrollable_frame, bg=DARKER_BG, padx=0, pady=0,
+                           highlightbackground=ACCENT_COLOR, highlightthickness=1, bd=0)
+        code_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+        
+        code_text = scrolledtext.ScrolledText(code_frame, font=('Consolas', 10), bg=DARKER_BG, fg=TEXT_COLOR,
+                                           insertbackground=TEXT_COLOR, height=10,
+                                           highlightthickness=0, bd=0)
+        code_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        code_text.insert("1.0", script_info.get("code", ""))
+        code_text.config(state=tk.DISABLED)  # Tornar o texto apenas leitura
+        
+        # Botões de ação
+        btn_frame = tk.Frame(scrollable_frame, bg=DARK_BG)
+        btn_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Botão para copiar o código
+        copy_btn = tk.Button(btn_frame, text="Copiar Código", bg=DARKER_BG, fg=TEXT_COLOR,
+                          font=self.normal_font, bd=0, padx=15, pady=8,
+                          highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                          activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                          command=lambda: self.copiar_script(script_info.get('code', ''), script_nome))
+        copy_btn.pack(side=tk.LEFT)
+        
+        # Efeito hover
+        copy_btn.bind("<Enter>", lambda e, b=copy_btn: b.config(fg=ACCENT_COLOR))
+        copy_btn.bind("<Leave>", lambda e, b=copy_btn: b.config(fg=TEXT_COLOR))
+        
+        # Botão fechar
+        close_btn = tk.Button(btn_frame, text="Fechar", bg=DARKER_BG, fg=TEXT_COLOR,
+                           font=self.normal_font, bd=0, padx=15, pady=8,
+                           highlightthickness=1, highlightbackground=ACCENT_COLOR, relief="ridge",
+                           activebackground=BUTTON_HOVER, activeforeground=ACCENT_COLOR,
+                           command=dialog.destroy)
+        close_btn.pack(side=tk.RIGHT)
+        
+        # Efeito hover
+        close_btn.bind("<Enter>", lambda e, b=close_btn: b.config(fg=ACCENT_COLOR))
+        close_btn.bind("<Leave>", lambda e, b=close_btn: b.config(fg=TEXT_COLOR))
+        
+    def copiar_script(self, codigo, nome_script):
+        """Copia o código do script para a área de transferência e exibe feedback"""
+        if not codigo:
+            messagebox.showwarning("Aviso", "Não há código disponível para copiar.")
+            return
+            
+        # Copiar para a área de transferência
+        pyperclip.copy(codigo)
+        
+        # Atualizar a barra de status
+        self.status_label.config(text=f"Script '{nome_script}' copiado para a área de transferência!")
+        
+        # Restaurar mensagem após alguns segundos
+        def restaurar_status():
+            time.sleep(3)
+            self.status_label.config(text="Pronto")
+            
+        threading.Thread(target=restaurar_status, daemon=True).start()
+        
+    def open_link(self, link):
+        """Abre um link no navegador padrão"""
+        if not link:
+            return
+            
+        # Tentar abrir o link no navegador
+        try:
+            webbrowser.open(link)
+            self.status_label.config(text=f"Abrindo link no navegador...")
+            
+            # Restaurar mensagem após alguns segundos
+            def restaurar_status():
+                time.sleep(3)
+                self.status_label.config(text="Pronto")
+                
+            threading.Thread(target=restaurar_status, daemon=True).start()
+        except Exception as e:
+            messagebox.showerror("Erro", f"Não foi possível abrir o link: {str(e)}")
+    
+    def update_datetime(self):
+        # Atualizar data e hora
+        from datetime import datetime
+        now = datetime.now()
+        date_str = now.strftime("%d/%m/%Y %H:%M:%S")
+        self.datetime_label.config(text=date_str)
+        # Atualizar a cada segundo
+        self.root.after(1000, self.update_datetime)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = OriginHub(root)
+    root.mainloop()
